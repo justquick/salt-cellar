@@ -66,37 +66,14 @@ class Cellar(SecretBox):
     def _dec(self, path):
         return self.decrypt(path, encoder=Base32Encoder)
 
-    def encrypt_file(self, plainfile, cipherfile=None):
-        if cipherfile is None:
-            cipherfile = self._enc(plainfile)
-        with open(cipherfile, 'wb') as fo, open(plainfile, 'rb') as fi:
-            chunk = fi.read(self.BLOCK_SIZE)
-            while chunk:
-                fo.write(self.encrypt(chunk, self.nonce))
-                chunk = fi.read(self.BLOCK_SIZE)
-        if self.verbosity:
-            if binary_type != str:
-                cipherfile = cipherfile.decode()
-            self.log('Encrypted {} -> {}'.format(plainfile, truncate(cipherfile)))
-
-    def decrypt_file(self, cipherfile, plainfile=None, lsonly=False):
-        if plainfile is None:
-            plainfile = self._dec(cipherfile)
-        if lsonly:
-            print(plainfile)
-            return
-        with open(cipherfile, 'rb') as fi, open(plainfile, 'wb') as fo:
-            chunk = fi.read(self.BLOCK_SIZE + 40)
-            while chunk:
-                fo.write(self.decrypt(chunk))
-                chunk = fi.read(self.BLOCK_SIZE + 40)
-        if self.verbosity and not lsonly:
-            if binary_type != str:
-                plainfile = plainfile.decode()
-            self.log('Decrypted {} -> {}'.format(truncate(cipherfile), plainfile))
+    def encrypt_stream(self, stream):
+        chunk = stream.read(self.BLOCK_SIZE)
+        while chunk:
+            sys.stdout.write(self.encrypt(chunk, self.nonce))
+            chunk = stream.read(self.BLOCK_SIZE)
 
     def encrypt_dir(self, directory):
-        outdir = os.path.dirname(directory)
+        outdir = os.path.dirname(os.path.abspath(directory))
         root = os.path.join(outdir, self._enc(directory))
         if self.verbosity < 2:
             self.verbosity = 0
@@ -112,6 +89,42 @@ class Cellar(SecretBox):
         if binary_type != str:
             root = root.decode()
         self.log('Encrypted {} -> {}'.format(directory, truncate(root)))
+
+    def encrypt_file(self, plainfile, cipherfile=None):
+        if cipherfile is None:
+            cipherfile = self._enc(plainfile)
+        with open(cipherfile, 'wb') as fo, open(plainfile, 'rb') as fi:
+            chunk = fi.read(self.BLOCK_SIZE)
+            while chunk:
+                fo.write(self.encrypt(chunk, self.nonce))
+                chunk = fi.read(self.BLOCK_SIZE)
+        if self.verbosity:
+            if binary_type != str:
+                cipherfile = cipherfile.decode()
+            self.log('Encrypted {} -> {}'.format(plainfile, truncate(cipherfile)))
+
+    def decrypt_stream(self, stream):
+        chunk = stream.read(self.BLOCK_SIZE + 40)
+        while chunk:
+            sys.stdout.write(self.decrypt(chunk))
+            chunk = stream.read(self.BLOCK_SIZE + 40)
+
+    def decrypt_file(self, cipherfile, plainfile=None, lsonly=False):
+        if plainfile is None:
+            plainfile = self._dec(cipherfile)
+        if lsonly:
+            self.log(plainfile)
+            return
+        with open(cipherfile, 'rb') as fi, open(plainfile, 'wb') as fo:
+            chunk = fi.read(self.BLOCK_SIZE + 40)
+            while chunk:
+                fo.write(self.decrypt(chunk))
+                chunk = fi.read(self.BLOCK_SIZE + 40)
+        if self.verbosity and not lsonly:
+            if binary_type != str:
+                plainfile = plainfile.decode()
+            self.log('Decrypted {} -> {}'.format(truncate(cipherfile), plainfile))
+
 
     def decrypt_dir(self, directory, lsonly=False):
         directory = directory.rstrip(os.path.sep)

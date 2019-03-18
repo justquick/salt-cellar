@@ -1,5 +1,6 @@
 import click
 import os
+import sys
 from six import binary_type
 from shutil import rmtree
 
@@ -17,51 +18,70 @@ def cli(ctx, key, verbosity):
     Toolkit for encrypting/decrypting files and directories using symetric encryption.
     Requires a secret keyfile to be passed, otherwise it will prompt for a password to use instead
     """
-    import ipdb
-    ipdb.set_trace()
-    secret = key.read() if key else click.prompt('Secret key', hide_input=True)
-    if len(secret) < Cellar.KEY_SIZE:
-        secret = secret.ljust(Cellar.KEY_SIZE, '\x00')
-    if len(secret) > Cellar.KEY_SIZE:
-        secret = secret[:Cellar.KEY_SIZE]
-        click.echo('WARN: Key too long, truncating to %d characters' % Cellar.KEY_SIZE, err=True)
-    ctx.obj = Cellar(binary_type(secret), verbosity=verbosity)
+    def get_cellar():
+        secret = key.read() if key else click.prompt('Secret key', hide_input=True, err=True)
+        if len(secret) < Cellar.KEY_SIZE:
+            secret = secret.ljust(Cellar.KEY_SIZE, '\x00')
+        if len(secret) > Cellar.KEY_SIZE:
+            secret = secret[:Cellar.KEY_SIZE]
+            click.echo('WARN: Key too long, truncating to %d characters' % Cellar.KEY_SIZE, err=True)
+        return Cellar(binary_type(secret), verbosity=verbosity)
+    ctx.obj = get_cellar
 
 
 @cli.command()
-@click.argument('paths', nargs=-1, type=click.Path(exists=True), required=True)
+@click.argument('paths', nargs=-1, type=click.Path(exists=True, allow_dash=True), required=True)
 @click.option('-p', '--preserve', is_flag=True,
               help='Keep plain text source content. By default it is deleted once encryption completes successfully.')
 @click.pass_context
 def encrypt(ctx, preserve, paths):
     "Encrypts given paths. Can be either files or directories"
+    cellar = ctx.obj()
     for path in paths:
+        if path == '-':
+            cellar.encrypt_stream(sys.stdin)
         if os.path.isfile(path):
-            ctx.obj.encrypt_file(path)
+            cellar.encrypt_file(path)
             if not preserve:
                 os.remove(path)
         if os.path.isdir(path):
-            ctx.obj.encrypt_dir(path)
+            cellar.encrypt_dir(path)
             if not preserve:
                 rmtree(path)
 
 
 @cli.command()
-@click.argument('paths', nargs=-1, type=click.Path(exists=True), required=True)
+@click.argument('paths', nargs=-1, type=click.Path(exists=True, allow_dash=True), required=True)
 @click.option('-p', '--preserve', is_flag=True,
               help='Keep encrypted source content. By default it is deleted once decryption completes successfully.')
 @click.pass_context
 def decrypt(ctx, preserve, paths):
     "Encrypts given paths. Can be either files or directories"
+    cellar = ctx.obj()
     for path in paths:
+        if path == '-':
+            cellar.decrypt_stream(sys.stdin)
         if os.path.isfile(path):
-            ctx.obj.decrypt_file(path)
+            cellar.decrypt_file(path)
             if not preserve:
                 os.remove(path)
         if os.path.isdir(path):
-            ctx.obj.decrypt_dir(path)
+            cellar.decrypt_dir(path)
             if not preserve:
                 rmtree(path)
+
+
+@cli.command('list')
+@click.argument('paths', nargs=-1, type=click.Path(exists=True), required=True)
+@click.pass_context
+def listcmd(ctx, paths):
+    "Lists encrypted path names. Can be either files or directories"
+    cellar = ctx.obj()
+    for path in paths:
+        if os.path.isfile(path):
+            cellar.decrypt_file(path, lsonly=True)
+        if os.path.isdir(path):
+            cellar.decrypt_dir(path, lsonly=True)
 
 
 if __name__ == '__main__':
