@@ -4,7 +4,7 @@ dist
 .DS_Store
 MANIFEST
 __pycache__
-/coverage/
+/htmlcov/
 /.coverage
 .idea/
 *.egg-info
