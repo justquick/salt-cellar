@@ -22,31 +22,6 @@ class Cellar(SecretBox):
             setattr(self, name, value)
         super(Cellar, self).__init__(key)
 
-    #
-    # def __call__(self):
-    #     action, path, preserve = self['action'], self['path'], self['preserve']
-    #     isfile, isdir = os.path.isfile(path), os.path.isdir(path)
-    #     if isfile:
-    #         if action == 'ls':
-    #             self.decrypt_file(path, lsonly=True)
-    #             return
-    #         if action == 'encrypt':
-    #             self.encrypt_file(path)
-    #         else:
-    #             self.decrypt_file(path)
-    #         if not preserve:
-    #             os.remove(path)
-    #     elif isdir:
-    #         if action == 'ls':
-    #             self.decrypt_dir(path, lsonly=True)
-    #             return
-    #         if action == 'encrypt':
-    #             self.encrypt_dir(path)
-    #         else:
-    #             self.decrypt_dir(path)
-    #         if not preserve:
-    #             rmtree(path)
-
     def decrypt(self, *args, **kwargs):
         try:
             return super(Cellar, self).decrypt(*args, **kwargs)
@@ -124,7 +99,6 @@ class Cellar(SecretBox):
             if binary_type != str:
                 plainfile = plainfile.decode()
             self.log('Decrypted {} -> {}'.format(truncate(cipherfile), plainfile))
-
 
     def decrypt_dir(self, directory, lsonly=False):
         directory = directory.rstrip(os.path.sep)

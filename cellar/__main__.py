@@ -11,7 +11,7 @@ from cellar.secret import Cellar
 @click.version_option()
 @click.option('-v', '--verbosity', count=True, help='Output level 1, 2 or 3')
 @click.option('-k', '--key', envvar='CELLAR_KEYFILE', type=click.File('rb'),
-              help='File path to use for secret key or CELLAR_KEYFILE variable')
+              help='File path to use for secret key or CELLAR_KEYFILE env var')
 @click.pass_context
 def cli(ctx, key, verbosity):
     """
