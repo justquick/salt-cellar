@@ -1,1 +1,1 @@
-from secret import Cellar
+from .secret import Cellar

@@ -8,3 +8,5 @@ __pycache__
 /.coverage
 .idea/
 *.egg-info
+tests/data/level1.enc
+tests/data/foo.enc.txt

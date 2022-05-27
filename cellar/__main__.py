@@ -1,7 +1,6 @@
 import click
 import os
 import sys
-from six import binary_type
 from shutil import rmtree
 
 from cellar.secret import Cellar
@@ -9,7 +8,7 @@ from cellar.secret import Cellar
 
 @click.group()
 @click.version_option()
-@click.option('-v', '--verbosity', count=True, help='Output level 1, 2 or 3')
+@click.option('-v', '--verbosity', default=1, count=True, help='Output level 1, 2 or 3')
 @click.option('-k', '--key', envvar='CELLAR_KEYFILE', type=click.File('rb'),
               help='File path to use for secret key or CELLAR_KEYFILE env var')
 @click.pass_context
@@ -25,7 +24,7 @@ def cli(ctx, key, verbosity):
         if len(secret) > Cellar.KEY_SIZE:
             secret = secret[:Cellar.KEY_SIZE]
             click.echo('WARN: Key too long, truncating to %d characters' % Cellar.KEY_SIZE, err=True)
-        return Cellar(binary_type(secret), verbosity=verbosity)
+        return Cellar(secret.encode(), verbosity=verbosity)
     ctx.obj = get_cellar
 
 

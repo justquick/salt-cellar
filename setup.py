@@ -11,12 +11,12 @@ def read_file(filename):
     except IOError:
         return ''
 
+
 setup(
-    name="Salt Cellar",
+    name='Salt Cellar',
     packages=['cellar'],
     install_requires=read_file('requirements.txt'),
     entry_points={
         'console_scripts': ['cellar = cellar.__main__:main']
     },
 )
-

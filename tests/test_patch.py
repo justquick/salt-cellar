@@ -1,5 +1,5 @@
 from .base import CellarTests
-from mock import patch
+from unittest.mock import patch
 
 
 class CellarPatchTests(CellarTests):

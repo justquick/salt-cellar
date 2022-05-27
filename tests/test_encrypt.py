@@ -1,5 +1,5 @@
 from io import BytesIO
-from mock import patch
+from unittest.mock import patch
 from os import walk, listdir
 
 from .base import CellarTests
@@ -9,8 +9,8 @@ class CellarEncryptionTests(CellarTests):
     @patch('cellar.secret.random', CellarTests.mocked_random)
     def test_base_encrypt(self):
         "PyNaCl byte encryption"
-        self.assertEqual(CellarTests.ciphertext,
-                         self.cellar.encrypt(CellarTests.plaintext, self.cellar.nonce))
+        ciphertext = self.cellar.encrypt(CellarTests.plaintext.encode(), self.cellar.nonce)
+        self.assertEqual(CellarTests.ciphertext, ciphertext)
 
     @patch('cellar.secret.random', CellarTests.mocked_random)
     def test_base32_enc(self):
@@ -20,7 +20,7 @@ class CellarEncryptionTests(CellarTests):
     @patch('cellar.secret.random', CellarTests.mocked_random)
     def test_stream_encrypt(self):
         "test io stream encryption"
-        instream, outstream = BytesIO(CellarTests.plaintext), BytesIO()
+        instream, outstream = BytesIO(CellarTests.plaintext.encode()), BytesIO()
         self.cellar.encrypt_stream(instream, outstream)
         self.assertEqual(CellarTests.ciphertext, outstream.getvalue())
 
@@ -32,12 +32,12 @@ class CellarEncryptionTests(CellarTests):
         self.assertEqual(CellarTests.cipherfoo, open(outfile, 'rb').read())
         msg = self.cellar.logger.call_args[0][0]
         self.assertIn('foo.txt', msg)
-        self.assertIn(infile, msg)
+        self.assertIn(str(infile), msg)
 
     @patch('cellar.secret.random', CellarTests.mocked_random)
     def test_dir_encrypt(self):
         indir = self.test_path('level1')
         outdir = self.test_path('level1.enc')
         self.cellar.encrypt_dir(indir, outdir)
-        self.assertEqual(indir, self.cellar._dec32(listdir(outdir)[0]))
+        self.assertEqual(str(indir), self.cellar._dec32(listdir(outdir)[0]))
         self.assertEqual(4, len(list(walk(outdir))))
