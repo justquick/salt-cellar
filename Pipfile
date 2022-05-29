@@ -13,6 +13,7 @@ pytest = "*"
 ipython = "*"
 ipdb = "*"
 green = "*"
+rich = "*"
 
 [requires]
 python_version = "3.9"
