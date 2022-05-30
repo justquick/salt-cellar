@@ -42,6 +42,8 @@ class Cellar:
         By default it encodes using the {self.encoder_class.__name__}
         """
         encoder = self.encoder_class if encode else RawEncoder
+        if isinstance(plaintext, str):
+            plaintext = plaintext.encode()
         return self.box.encrypt(plaintext, self.nonce, encoder())
 
     def decrypt(self, ciphertext, decode=True):
