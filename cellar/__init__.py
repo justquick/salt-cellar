@@ -1,1 +1,1 @@
-from .crypt import Cellar
+from .crypt import Cellar, DecryptionError

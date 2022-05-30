@@ -10,6 +10,10 @@ from nacl.encoding import URLSafeBase64Encoder, RawEncoder
 from .log import logger
 
 
+class DecryptionError(Exception):
+    pass
+
+
 class Cellar:
     """
     Main encryption class to enc/decrypt streams, files and directories.
