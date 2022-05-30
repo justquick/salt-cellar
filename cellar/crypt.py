@@ -24,7 +24,9 @@ class Cellar:
     key_size = SecretBox.KEY_SIZE
     prefix = '.enc.'
 
-    def __init__(self, key: bytes, **options):
+    def __init__(self, key, **options):
+        if isinstance(key, str):
+            key = key.encode()
         if len(key) < self.key_size:
             key = key.ljust(self.key_size, b'\x00')
             logger.warning(f'Key too short, padding to to {self.key_size} characters')
@@ -60,25 +62,26 @@ class Cellar:
         try:
             return self.box.decrypt(ciphertext, encoder=encoder)
         except CryptoError as exc:
-            logger.critical(f'{exc}. Make sure the decryption key is correct')
-            exit(1)
+            msg = f'{exc}. Make sure the decryption key is correct'
+            logger.critical(msg)
+            raise DecryptionError(msg)
 
-    def encrypt_stream(self, instream, outstream=sys.stdout.buffer):
+    def encrypt_stream(self, instream, outstream=sys.stdout.buffer, encode=False):
         """
         Encrypts a stream and outputs it to another (default stdout)
         """
         chunk = instream.read(self.block_size)
         while chunk:
-            outstream.write(self.encrypt(chunk, False))
+            outstream.write(self.encrypt(chunk, encode))
             chunk = instream.read(self.block_size)
 
-    def decrypt_stream(self, instream, outstream=sys.stdout.buffer):
+    def decrypt_stream(self, instream, outstream=sys.stdout.buffer, decode=False):
         """
         Decrypts a stream and outputs it to another (default stdout)
         """
         chunk = instream.read(self.block_size + 40)
         while chunk:
-            outstream.write(self.decrypt(chunk, False))
+            outstream.write(self.decrypt(chunk, decode))
             chunk = instream.read(self.block_size + 40)
 
     def encrypt_file(self, plainfile, cipherfile=None, preserve=False):
@@ -150,7 +153,7 @@ class Cellar:
         If preserve is True, encdir is preserved but by default it's deleted
         """
         encdir = encdir if isinstance(encdir, Path) else Path(encdir)
-        decbase = Path(self.decrypt(encdir.name[len(self.prefix):]).decode())
+        decbase = encdir.parent / Path(self.decrypt(encdir.name[len(self.prefix):]).decode())
         for path in encdir.rglob('*'):
             if path.is_dir():
                 continue
