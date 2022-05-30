@@ -14,6 +14,7 @@ ipython = "*"
 ipdb = "*"
 green = "*"
 rich = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.9"
