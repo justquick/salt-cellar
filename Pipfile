@@ -18,5 +18,3 @@ rich = "*"
 pytest-cov = "*"
 pytest-asyncio = "*"
 
-[requires]
-python_version = "3.9"

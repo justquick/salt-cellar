@@ -53,4 +53,4 @@ jobs:
 
       # execute the tests
       - name: Run tests
-        run: pipenv run pytest -s --cov=pdf12step
+        run: pipenv run pytest -s --cov=cellar
