@@ -26,7 +26,7 @@ class Cellar:
     key_size = SecretBox.KEY_SIZE
     prefix = '.enc.'
 
-    def __init__(self, key, **options):
+    def __init__(self, key):
         if isinstance(key, str):
             key = key.encode()
         if len(key) < self.key_size:
