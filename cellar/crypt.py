@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 from shutil import rmtree
+import asyncio
 
 from nacl.secret import SecretBox
 from nacl.utils import random
@@ -42,7 +43,7 @@ class Cellar:
         """
         return random(self.box.NONCE_SIZE)
 
-    def encrypt(self, plaintext, encode=True):
+    async def encrypt(self, plaintext, encode=True):
         f"""
         Encrypts plaintext to ciphertext.
         By default it encodes using the {self.encoder_class.__name__}
@@ -52,7 +53,7 @@ class Cellar:
             plaintext = plaintext.encode()
         return self.box.encrypt(plaintext, self.nonce, encoder())
 
-    def decrypt(self, ciphertext, decode=True):
+    async def decrypt(self, ciphertext, decode=True):
         f"""
         Encrypts ciphertext to  plaintext.
         By default it decodes using the {self.encoder_class.__name__}
@@ -66,25 +67,25 @@ class Cellar:
             logger.critical(msg)
             raise DecryptionError(msg)
 
-    def encrypt_stream(self, instream, outstream=sys.stdout.buffer, encode=False):
+    async def encrypt_stream(self, instream, outstream=sys.stdout.buffer, encode=False):
         """
         Encrypts a stream and outputs it to another (default stdout)
         """
         chunk = instream.read(self.block_size)
         while chunk:
-            outstream.write(self.encrypt(chunk, encode))
+            outstream.write(await self.encrypt(chunk, encode))
             chunk = instream.read(self.block_size)
 
-    def decrypt_stream(self, instream, outstream=sys.stdout.buffer, decode=False):
+    async def decrypt_stream(self, instream, outstream=sys.stdout.buffer, decode=False):
         """
         Decrypts a stream and outputs it to another (default stdout)
         """
         chunk = instream.read(self.block_size + 40)
         while chunk:
-            outstream.write(self.decrypt(chunk, decode))
+            outstream.write(await self.decrypt(chunk, decode))
             chunk = instream.read(self.block_size + 40)
 
-    def encrypt_file(self, plainfile, cipherfile=None, preserve=False):
+    async def encrypt_file(self, plainfile, cipherfile=None, preserve=False):
         f"""
         Encrypts a plainfile and creates the cipherfile.
         By default it encrypts the filename and file content itself.
@@ -93,19 +94,19 @@ class Cellar:
         """
         plainfile = plainfile if isinstance(plainfile, Path) else Path(plainfile)
         if cipherfile is None:
-            enc = self.encrypt(plainfile.name.encode()).decode()
+            enc = await self.encrypt(plainfile.name.encode()).decode()
             cipherfile = plainfile.parent / f'{self.prefix}{enc}'
         with cipherfile.open('wb') as fo, plainfile.open('rb') as fi:
             chunk = fi.read(self.block_size)
             while chunk:
-                fo.write(self.encrypt(chunk, False))
+                fo.write(await self.encrypt(chunk, False))
                 chunk = fi.read(self.block_size)
         logger.debug(f'Encrypted file {plainfile} -> {cipherfile}')
         if not preserve:
             plainfile.unlink()
         return cipherfile
 
-    def decrypt_file(self, cipherfile, plainfile=None, preserve=False):
+    async def decrypt_file(self, cipherfile, plainfile=None, preserve=False):
         f"""
         Decrypts a cipherfile into the plainfile.
         By default it decrypts the filename and file content itself.
@@ -113,56 +114,69 @@ class Cellar:
         The cipherfile file starts with the '{self.prefix}' prefix
         """
         cipherfile = cipherfile if isinstance(cipherfile, Path) else Path(cipherfile)
-        dec = self.decrypt(cipherfile.name[len(self.prefix):]).decode()
+        dec = await self.decrypt(cipherfile.name[len(self.prefix):])
+        dec = dec.decode()
         if plainfile is None:
             plainfile = cipherfile.parent / dec
         with cipherfile.open('rb') as fi, plainfile.open('wb') as fo:
             chunk = fi.read(self.block_size + 40)
             while chunk:
-                fo.write(self.decrypt(chunk, False))
+                fo.write(await self.decrypt(chunk, False))
                 chunk = fi.read(self.block_size + 40)
         if not preserve:
             cipherfile.unlink()
         logger.debug(f'Decrypted file {cipherfile} -> {plainfile}')
         return plainfile
 
-    def encrypt_dir(self, plaindir, preserve=False):
+    async def encrypt_dir(self, plaindir, preserve=False):
         """
         Encrypts entire directory with all file/dir names and file content
         If preserve is True, plaindir is preserved but by default it's deleted
         """
         plaindir = plaindir if isinstance(plaindir, Path) else Path(plaindir)
-        encbase = plaindir.parent / f'{self.prefix}{self.encrypt(plaindir.name.encode()).decode()}'
+        encplain = await self.encrypt(plaindir.name.encode())
+        encbase = plaindir.parent / f'{self.prefix}{encplain.decode()}'
+        tasks = []
         for path in plaindir.rglob('*'):
             if path.name.startswith(self.prefix) or path.is_dir():
                 # dont double encrypt files, skip dirs
                 continue
             relpath = path.relative_to(plaindir)
-            encparent = self.encrypt(bytes(relpath.parent)).decode()
-            encname = self.encrypt(path.name.encode()).decode()
+            encparent = await self.encrypt(bytes(relpath.parent))
+            encparent = encparent.decode()
+            encname = await self.encrypt(path.name.encode())
+            encname = encname.decode()
             cipherfile = encbase / f'{self.prefix}{encparent}' / f'{self.prefix}{encname}'
             cipherfile.parent.mkdir(parents=True, exist_ok=True)
-            self.encrypt_file(path, cipherfile, preserve)
+            tasks.append(self.encrypt_file(path, cipherfile, preserve))
+        await asyncio.gather(*tasks)
         if not preserve:
             rmtree(plaindir)
         logger.info(f'Encrypted directory {plaindir}')
 
-    def decrypt_dir(self, encdir, preserve=False):
+    async def decrypt_dir(self, encdir, preserve=False):
         """
         Decrypts entire directory with all file/dir names and file content
         If preserve is True, encdir is preserved but by default it's deleted
         """
         encdir = encdir if isinstance(encdir, Path) else Path(encdir)
-        decbase = encdir.parent / Path(self.decrypt(encdir.name[len(self.prefix):]).decode())
+        decbase = await self.decrypt(encdir.name[len(self.prefix):])
+        decbase = encdir.parent / Path(decbase.decode())
+        tasks = []
         for path in encdir.rglob('*'):
             if path.is_dir():
                 continue
             relpath = path.relative_to(encdir)
-            decparent = self.decrypt(str(relpath.parent)[len(self.prefix):].encode()).decode()
-            decname = self.decrypt(relpath.name[len(self.prefix):]).decode()
+            decparent = await self.decrypt(str(relpath.parent)[len(self.prefix):].encode())
+            decparent = decparent.decode()
+            decname = await self.decrypt(relpath.name[len(self.prefix):])
+            decname = decname.decode()
             decpath = decbase / decparent / decname
             decpath.parent.mkdir(parents=True, exist_ok=True)
-            self.decrypt_file(path, decpath)
+            tasks.append(self.decrypt_file(path, decpath))
+
+        await asyncio.gather(*tasks)
+        #     asyncio.run(main())
         if not preserve:
             rmtree(encdir)
         logger.info(f'Decrypted directory {encdir}')
