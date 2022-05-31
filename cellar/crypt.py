@@ -7,6 +7,7 @@ from nacl.secret import SecretBox
 from nacl.utils import random
 from nacl.exceptions import CryptoError
 from nacl.encoding import URLSafeBase64Encoder, RawEncoder
+import aiofiles
 
 from .log import logger
 
@@ -96,11 +97,11 @@ class Cellar:
         if cipherfile is None:
             enc = await self.encrypt(plainfile.name.encode()).decode()
             cipherfile = plainfile.parent / f'{self.prefix}{enc}'
-        with cipherfile.open('wb') as fo, plainfile.open('rb') as fi:
-            chunk = fi.read(self.block_size)
+        async with aiofiles.open(cipherfile, 'wb') as fo, aiofiles.open(plainfile, 'rb') as fi:
+            chunk = await fi.read(self.block_size)
             while chunk:
-                fo.write(await self.encrypt(chunk, False))
-                chunk = fi.read(self.block_size)
+                await fo.write(await self.encrypt(chunk, False))
+                chunk = await fi.read(self.block_size)
         logger.debug(f'Encrypted file {plainfile} -> {cipherfile}')
         if not preserve:
             plainfile.unlink()
@@ -118,11 +119,11 @@ class Cellar:
         dec = dec.decode()
         if plainfile is None:
             plainfile = cipherfile.parent / dec
-        with cipherfile.open('rb') as fi, plainfile.open('wb') as fo:
-            chunk = fi.read(self.block_size + 40)
+        async with aiofiles.open(cipherfile, 'rb') as fi, aiofiles.open(plainfile, 'wb') as fo:
+            chunk = await fi.read(self.block_size + 40)
             while chunk:
-                fo.write(await self.decrypt(chunk, False))
-                chunk = fi.read(self.block_size + 40)
+                await fo.write(await self.decrypt(chunk, False))
+                chunk = await fi.read(self.block_size + 40)
         if not preserve:
             cipherfile.unlink()
         logger.debug(f'Decrypted file {cipherfile} -> {plainfile}')
