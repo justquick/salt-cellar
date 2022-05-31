@@ -12,14 +12,11 @@ def joinpath(path, *args):
     return path.joinpath(*args)
 
 
-class CellarTests(TestCase):
+class CellarTests:
     nonce = b'r' * SecretBox.NONCE_SIZE
     key = b'k' * 32
     testdir = Path(__file__).parent
-
-    def setUp(self):
-        super(CellarTests, self).setUp()
-        self.cellar = Cellar(self.key)
+    cellar = Cellar(key)
 
     def get_path(self, *args):
         # testdir = os.path.abspath(os.path.dirname(__file__))

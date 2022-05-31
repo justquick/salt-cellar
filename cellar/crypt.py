@@ -95,7 +95,8 @@ class Cellar:
         """
         plainfile = plainfile if isinstance(plainfile, Path) else Path(plainfile)
         if cipherfile is None:
-            enc = await self.encrypt(plainfile.name.encode()).decode()
+            enc = await self.encrypt(plainfile.name.encode())
+            enc = enc.decode()
             cipherfile = plainfile.parent / f'{self.prefix}{enc}'
         async with aiofiles.open(cipherfile, 'wb') as fo, aiofiles.open(plainfile, 'rb') as fi:
             chunk = await fi.read(self.block_size)
