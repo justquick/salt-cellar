@@ -45,7 +45,7 @@ jobs:
       # install environment specific dependencies
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: pipenv install --dev --deploy --python python${{ matrix.python-version }}
+        run: pipenv install pynacl six click aiofiles pytest pytest-cov pytest-asyncio --python python${{ matrix.python-version }}
 
       # install our package
       - name: Install package
