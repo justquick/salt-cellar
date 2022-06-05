@@ -17,6 +17,6 @@ setup(
     packages=['cellar'],
     install_requires=read_file('requirements.txt'),
     entry_points={
-        'console_scripts': ['cellar = cellar.__main__:main']
+        'console_scripts': ['cellar = cellar.cli:cli']
     },
 )

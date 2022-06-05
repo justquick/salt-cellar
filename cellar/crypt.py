@@ -162,7 +162,7 @@ class Cellar:
             decname = self.decrypt(relpath.name[len(self.prefix):]).decode()
             decpath = decbase / decparent / decname
             decpath.parent.mkdir(parents=True, exist_ok=True)
-            self.decrypt_file(path, decpath)
+            self.decrypt_file(path, decpath, preserve)
         if not preserve:
             rmtree(encdir)
         logger.info(f'Decrypted directory {encdir}')
