@@ -155,6 +155,7 @@ class Cellar:
         if not preserve:
             rmtree(plaindir)
         logger.info(f'Encrypted directory {plaindir}')
+        return encbase
 
     async def decrypt_dir(self, encdir, preserve=False):
         """
@@ -182,3 +183,4 @@ class Cellar:
         if not preserve:
             rmtree(encdir)
         logger.info(f'Decrypted directory {encdir}')
+        return decbase
