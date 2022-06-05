@@ -2,10 +2,12 @@ from unittest.mock import patch
 from io import BytesIO
 
 from .base import CellarTests
+import pytest
 
 
+@pytest.mark.asyncio
 @patch('cellar.crypt.Cellar.nonce', CellarTests.nonce)
-class CryptTest(CellarTests):
+class TestCrypt(CellarTests):
     plaintext = b'foobar'
     ciphertext = b'cnJycnJycnJycnJycnJycnJycnJycnJycmDkEdGyR-6iWE3_Mg-GuZ7Ny_qVjg=='
     cipherfilename = 'cnJycnJycnJycnJycnJycnJycnJycnJy_5toRIJOTeFTl8Y_rqJ9l57Ny7aAhMc='
@@ -28,35 +30,35 @@ class CryptTest(CellarTests):
         '8d0271606d0e549662dbf1c36cb049c6d3a30b04'
     }
 
-    def test_encrypt(self):
-        assert self.ciphertext == self.cellar.encrypt(self.plaintext)
-        assert self.cellar.decrypt(self.ciphertext) == self.plaintext
+    async def test_encrypt(self):
+        assert self.ciphertext == await self.cellar.encrypt(self.plaintext)
+        assert await self.cellar.decrypt(self.ciphertext) == self.plaintext
 
-    def test_encrypt_stream(self):
+    async def test_encrypt_stream(self):
         instream, outstream = BytesIO(self.plaintext), BytesIO()
-        self.cellar.encrypt_stream(instream, outstream, True)
+        await self.cellar.encrypt_stream(instream, outstream, True)
         assert self.ciphertext == outstream.getvalue()
 
         instream, outstream = BytesIO(self.ciphertext), BytesIO()
-        self.cellar.decrypt_stream(instream, outstream, True)
+        await self.cellar.decrypt_stream(instream, outstream, True)
         assert self.plaintext == outstream.getvalue()
 
-    def test_encrypt_file(self):
+    async def test_encrypt_file(self):
         plainfile = self.get_path('foo.txt')
         plainsha = self.sha(plainfile)
-        self.cellar.encrypt_file(plainfile)
+        await self.cellar.encrypt_file(plainfile)
         cipherfile = self.get_path(f'{self.cellar.prefix}{self.cipherfilename}')
         assert cipherfile.is_file()
         assert self.sha(cipherfile) == self.cipherfilesha
-        self.cellar.decrypt_file(cipherfile)
+        await self.cellar.decrypt_file(cipherfile)
         assert plainsha == self.sha(plainfile)
 
-    def test_encrypt_dir(self):
+    async def test_encrypt_dir(self):
         plaindir = self.get_path('level1')
-        self.cellar.encrypt_dir(plaindir)
+        await self.cellar.encrypt_dir(plaindir)
         cipherdir = self.get_path(f'{self.cellar.prefix}{self.cipherdirname}')
         assert cipherdir.is_dir()
         cfiles = self.file_shas(cipherdir)
         assert cfiles == self.cipherfiles
-        self.cellar.decrypt_dir(cipherdir)
+        await self.cellar.decrypt_dir(cipherdir)
         assert self.plainfiles == self.file_shas(plaindir)

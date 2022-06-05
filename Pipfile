@@ -7,6 +7,7 @@ name = "pypi"
 pynacl = "*"
 click = "*"
 six = "*"
+aiofiles = "*"
 
 [dev-packages]
 pytest = "*"
@@ -15,6 +16,5 @@ ipdb = "*"
 green = "*"
 rich = "*"
 pytest-cov = "*"
+pytest-asyncio = "*"
 
-[requires]
-python_version = "3.9"

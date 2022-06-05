@@ -1,6 +1,7 @@
 import click
 import sys
 from pathlib import Path
+import asyncio
 
 from cellar.crypt import Cellar
 
@@ -45,13 +46,14 @@ def encrypt(ctx, preserve, paths):
     "Encrypts given paths. Can be either files or directories"
     for path in paths:
         if str(path) == '-':
-            ctx.obj.encrypt_stream(sys.stdin.buffer)
+            main = ctx.obj.encrypt_stream(sys.stdin.buffer)
         elif path.is_file():
-            ctx.obj.encrypt_file(path, preserve=preserve)
+            main = ctx.obj.encrypt_file(path, preserve=preserve)
         elif path.is_dir():
-            ctx.obj.encrypt_dir(path, preserve=preserve)
+            main = ctx.obj.encrypt_dir(path, preserve=preserve)
         else:
             raise click.Abort(f'Unknown path type: <{type(path)} {path}>')
+        asyncio.run(main)
 
 
 @cli.command()
@@ -63,13 +65,14 @@ def decrypt(ctx, preserve, paths):
     "Encrypts given paths. Can be either files or directories"
     for path in paths:
         if str(path) == '-':
-            ctx.obj.decrypt_stream(sys.stdin.buffer)
+            main = ctx.obj.decrypt_stream(sys.stdin.buffer)
         elif path.is_file():
-            ctx.obj.decrypt_file(path, preserve=preserve)
+            main = ctx.obj.decrypt_file(path, preserve=preserve)
         elif path.is_dir():
-            ctx.obj.decrypt_dir(path, preserve=preserve)
+            main = ctx.obj.decrypt_dir(path, preserve=preserve)
         else:
             raise click.Abort(f'Unknown path type: <{type(path)} {path}>')
+        asyncio.run(main)
 
 
 if __name__ == '__main__':
