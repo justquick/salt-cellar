@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import asyncio
 
-from cellar.crypt import Cellar
+from cellar.crypt import OverwritePathCellar as Cellar
 
 USAGE = f"""
 Toolkit for encrypting/decrypting files and directories using symetric (secret key) encryption.
@@ -48,12 +48,12 @@ def encrypt(ctx, preserve, paths):
         if str(path) == '-':
             main = ctx.obj.encrypt_stream(sys.stdin.buffer)
         elif path.is_file():
-            main = ctx.obj.encrypt_file(path, preserve=preserve)
+            main = ctx.obj.encrypt_file(path)
         elif path.is_dir():
-            main = ctx.obj.encrypt_dir(path, preserve=preserve)
+            main = ctx.obj.encrypt_dir(path)
         else:
             raise click.Abort(f'Unknown path type: <{type(path)} {path}>')
-        asyncio.run(main)
+        asyncio.get_event_loop().run_until_complete(main)
 
 
 @cli.command()
@@ -62,18 +62,20 @@ def encrypt(ctx, preserve, paths):
               help='Keep encrypted source content. By default it is deleted once decryption completes successfully.')
 @click.pass_context
 def decrypt(ctx, preserve, paths):
-    "Encrypts given paths. Can be either files or directories"
+    "Decrypts given paths. Can be either files or directories"
     for path in paths:
         if str(path) == '-':
             main = ctx.obj.decrypt_stream(sys.stdin.buffer)
         elif path.is_file():
-            main = ctx.obj.decrypt_file(path, preserve=preserve)
+            main = ctx.obj.decrypt_file(path)
         elif path.is_dir():
-            main = ctx.obj.decrypt_dir(path, preserve=preserve)
+            main = ctx.obj.decrypt_dir(path)
         else:
             raise click.Abort(f'Unknown path type: <{type(path)} {path}>')
-        asyncio.run(main)
+        asyncio.get_event_loop().run_until_complete(main)
 
 
 if __name__ == '__main__':
-    cli(obj=None)
+    from ipdb import launch_ipdb_on_exception
+    with launch_ipdb_on_exception():
+        cli(obj=None)

@@ -16,7 +16,7 @@ class DecryptionError(Exception):
     pass
 
 
-class Cellar:
+class BaseCellar:
     """
     Main encryption class to enc/decrypt streams, files and directories.
     Manages the nacl SecretBox/nonce/keys
@@ -25,6 +25,7 @@ class Cellar:
     block_size = 2 ** 20
     key_size = SecretBox.KEY_SIZE
     prefix = '.enc.'
+    sem = asyncio.Semaphore(100)
 
     def __init__(self, key):
         if isinstance(key, str):
@@ -86,6 +87,42 @@ class Cellar:
             outstream.write(await self.decrypt(chunk, decode))
             chunk = instream.read(self.block_size + 40)
 
+    async def read_write_crypto(self, infile, outfile, encrypt=True):
+        method = self.encrypt
+        block_size = self.block_size
+        if not encrypt:
+            method = self.decrypt
+            block_size += 40
+        async with self.sem:
+            async with aiofiles.open(infile, 'rb') as fi, aiofiles.open(outfile, 'wb') as fo:
+                chunk = await fi.read(block_size)
+                while chunk:
+                    await fo.write(await method(chunk, False))
+                    chunk = await fi.read(block_size)
+
+    async def map_crypto(self, func, iters):
+        await asyncio.gather(*(func(arg) for arg in iters))
+
+
+class OverwritePathCellar(BaseCellar):
+    async def encrypt_file(self, plainfile, preserve=None):
+        tmpfile = plainfile.with_suffix(f'{plainfile.suffix}.enc')
+        await self.read_write_crypto(plainfile, tmpfile)
+        tmpfile.replace(plainfile)
+
+    async def decrypt_file(self, cipherfile, preserve=None):
+        tmpfile = cipherfile.with_suffix(f'{cipherfile.suffix}.dec')
+        await self.read_write_crypto(cipherfile, tmpfile, False)
+        tmpfile.replace(cipherfile)
+
+    async def encrypt_dir(self, plaindir, preserve=False):
+        await self.map_crypto(self.encrypt_file, (path for path in plaindir.rglob('*') if path.is_file()))
+
+    async def decrypt_dir(self, cipherdir, preserve=False):
+        await self.map_crypto(self.decrypt_file, (path for path in cipherdir.rglob('*') if path.is_file()))
+
+
+class EncryptedPathCellar(BaseCellar):
     async def encrypt_file(self, plainfile, cipherfile=None, preserve=False):
         f"""
         Encrypts a plainfile and creates the cipherfile.
