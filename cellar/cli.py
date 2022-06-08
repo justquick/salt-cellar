@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import asyncio
 
-from cellar.crypt import OverwritePathCellar as Cellar
+from cellar.crypt import OverwritePathCellar as Cellar, DecryptionError
 
 USAGE = """
 Toolkit for encrypting/decrypting files and directories using symetric (secret key) encryption.
@@ -21,8 +21,8 @@ If key is too long, it will be truncated.
               help='File path to use for secret key or CELLAR_KEYFILE env var')
 @click.option('-p', '--key-phrase', envvar='CELLAR_KEYPHRASE', default=None,
               help='Text to use as secret key. Use "-" to read from stdin. Do NOT type your key via command line! It will show in your shell history')
-@click.option('-P', '--key-prompt', envvar='CELLAR_KEYPROMPT', is_flag=True,
-              help='Prompt for the secret key')
+@click.option('-P', '--key-prompt', is_flag=True,
+              help='Prompt for the secret key (default)')
 @click.pass_context
 def cli(ctx, key_prompt, key_phrase, key_file, verbosity):
     ctx.ensure_object(object)
@@ -30,10 +30,10 @@ def cli(ctx, key_prompt, key_phrase, key_file, verbosity):
         secret = sys.stdin.buffer.read() if key_phrase == '-' else key_phrase.encode()
     elif key_file:
         secret = key_file.read()
-    elif key_prompt:
-        secret = click.prompt('Secret key', hide_input=True, err=True).encode()
     else:
-        raise click.UsageError('Must choose a key as a file, phrase or prompt')
+        if not key_prompt:
+            click.secho('No key file/phrase found, prompting instead', fg='yellow')
+        secret = click.prompt('Secret key', hide_input=True, err=True).encode()
     ctx.obj = Cellar(secret)
 
 
@@ -51,8 +51,6 @@ def encrypt(ctx, preserve, paths):
             main = ctx.obj.encrypt_file(path)
         elif path.is_dir():
             main = ctx.obj.encrypt_dir(path)
-        else:
-            raise click.Abort(f'Unknown path type: <{type(path)} {path}>')
         asyncio.get_event_loop().run_until_complete(main)
 
 
@@ -70,9 +68,11 @@ def decrypt(ctx, preserve, paths):
             main = ctx.obj.decrypt_file(path)
         elif path.is_dir():
             main = ctx.obj.decrypt_dir(path)
-        else:
-            raise click.Abort(f'Unknown path type: <{type(path)} {path}>')
-        asyncio.get_event_loop().run_until_complete(main)
+        try:
+            asyncio.get_event_loop().run_until_complete(main)
+        except DecryptionError as exc:
+            click.secho(exc, fg='red')
+            raise click.Abort
 
 
 if __name__ == '__main__':
