@@ -1,13 +1,13 @@
 from unittest.mock import patch
-from io import BytesIO
+
+from cellar.crypt import EncryptedPathCellar
 
 from .base import CellarTests
-import pytest
 
 
-@pytest.mark.asyncio
-@patch('cellar.crypt.Cellar.nonce', CellarTests.nonce)
+@patch('cellar.crypt.BaseCellar.nonce', CellarTests.nonce)
 class TestCrypt(CellarTests):
+    cellar_class = EncryptedPathCellar
     plaintext = b'foobar'
     ciphertext = b'cnJycnJycnJycnJycnJycnJycnJycnJycmDkEdGyR-6iWE3_Mg-GuZ7Ny_qVjg=='
     cipherfilename = 'cnJycnJycnJycnJycnJycnJycnJycnJy_5toRIJOTeFTl8Y_rqJ9l57Ny7aAhMc='
@@ -29,19 +29,6 @@ class TestCrypt(CellarTests):
         'data/.enc.cnJycnJycnJycnJycnJycnJycnJycnJyMeNcp6vJ7VQqxRg5ez0TD5TH0v2YzQ==/.enc.cnJycnJycnJycnJycnJycnJycnJycnJyH0Ve5SB8mhyro4jvulBsDtY=/.enc.cnJycnJycnJycnJycnJycnJycnJycnJyGu0iGa1C1W4DCEWC2xAf0Z7Ny6naiMto':
         '8d0271606d0e549662dbf1c36cb049c6d3a30b04'
     }
-
-    async def test_encrypt(self):
-        assert self.ciphertext == await self.cellar.encrypt(self.plaintext)
-        assert await self.cellar.decrypt(self.ciphertext) == self.plaintext
-
-    async def test_encrypt_stream(self):
-        instream, outstream = BytesIO(self.plaintext), BytesIO()
-        await self.cellar.encrypt_stream(instream, outstream, True)
-        assert self.ciphertext == outstream.getvalue()
-
-        instream, outstream = BytesIO(self.ciphertext), BytesIO()
-        await self.cellar.decrypt_stream(instream, outstream, True)
-        assert self.plaintext == outstream.getvalue()
 
     async def test_encrypt_file(self):
         plainfile = self.get_path('foo.txt')

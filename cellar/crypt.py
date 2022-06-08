@@ -21,13 +21,13 @@ class BaseCellar:
     Main encryption class to enc/decrypt streams, files and directories.
     Manages the nacl SecretBox/nonce/keys
     """
-    encoder_class = URLSafeBase64Encoder
-    block_size = 2 ** 20
-    key_size = SecretBox.KEY_SIZE
-    prefix = '.enc.'
-    sem = asyncio.Semaphore(100)
 
-    def __init__(self, key):
+    def __init__(self, key, encoder_class=URLSafeBase64Encoder, block_size=2 ** 20, concurrency=100):
+        self.encoder_class = encoder_class
+        self.block_size = block_size
+        self.semaphore = asyncio.Semaphore(concurrency)
+        self.key_size = SecretBox.KEY_SIZE
+        self.total_bytes = 0
         if isinstance(key, str):
             key = key.encode()
         if len(key) < self.key_size:
@@ -93,10 +93,11 @@ class BaseCellar:
         if not encrypt:
             method = self.decrypt
             block_size += 40
-        async with self.sem:
+        async with self.semaphore:
             async with aiofiles.open(infile, 'rb') as fi, aiofiles.open(outfile, 'wb') as fo:
                 chunk = await fi.read(block_size)
                 while chunk:
+                    self.total_bytes += len(chunk)
                     await fo.write(await method(chunk, False))
                     chunk = await fi.read(block_size)
 
@@ -109,20 +110,29 @@ class OverwritePathCellar(BaseCellar):
         tmpfile = plainfile.with_suffix(f'{plainfile.suffix}.enc')
         await self.read_write_crypto(plainfile, tmpfile)
         tmpfile.replace(plainfile)
+        logger.info(f'Encrypted file {plainfile}')
 
     async def decrypt_file(self, cipherfile, preserve=None):
         tmpfile = cipherfile.with_suffix(f'{cipherfile.suffix}.dec')
         await self.read_write_crypto(cipherfile, tmpfile, False)
         tmpfile.replace(cipherfile)
+        logger.info(f'Decrypted file {cipherfile}')
 
     async def encrypt_dir(self, plaindir, preserve=False):
         await self.map_crypto(self.encrypt_file, (path for path in plaindir.rglob('*') if path.is_file()))
+        logger.info(f'Encrypted directory {plaindir}')
 
     async def decrypt_dir(self, cipherdir, preserve=False):
         await self.map_crypto(self.decrypt_file, (path for path in cipherdir.rglob('*') if path.is_file()))
+        logger.info(f'Decrypted directory {cipherdir}')
 
 
 class EncryptedPathCellar(BaseCellar):
+    """
+    Cellar that encrypts the filenames as well as the content
+    """
+    prefix = '.enc.'
+
     async def encrypt_file(self, plainfile, cipherfile=None, preserve=False):
         f"""
         Encrypts a plainfile and creates the cipherfile.
@@ -135,11 +145,7 @@ class EncryptedPathCellar(BaseCellar):
             enc = await self.encrypt(plainfile.name.encode())
             enc = enc.decode()
             cipherfile = plainfile.parent / f'{self.prefix}{enc}'
-        async with aiofiles.open(cipherfile, 'wb') as fo, aiofiles.open(plainfile, 'rb') as fi:
-            chunk = await fi.read(self.block_size)
-            while chunk:
-                await fo.write(await self.encrypt(chunk, False))
-                chunk = await fi.read(self.block_size)
+        await self.read_write_crypto(plainfile, cipherfile)
         logger.debug(f'Encrypted file {plainfile} -> {cipherfile}')
         if not preserve:
             plainfile.unlink()
@@ -157,11 +163,7 @@ class EncryptedPathCellar(BaseCellar):
         dec = dec.decode()
         if plainfile is None:
             plainfile = cipherfile.parent / dec
-        async with aiofiles.open(cipherfile, 'rb') as fi, aiofiles.open(plainfile, 'wb') as fo:
-            chunk = await fi.read(self.block_size + 40)
-            while chunk:
-                await fo.write(await self.decrypt(chunk, False))
-                chunk = await fi.read(self.block_size + 40)
+        await self.read_write_crypto(cipherfile, plainfile, False)
         if not preserve:
             cipherfile.unlink()
         logger.debug(f'Decrypted file {cipherfile} -> {plainfile}')

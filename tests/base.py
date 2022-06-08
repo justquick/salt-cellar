@@ -1,10 +1,9 @@
-from unittest import TestCase
 from pathlib import Path
 from hashlib import sha1
 
 from nacl.secret import SecretBox
 
-from cellar import Cellar
+from cellar import crypt
 
 
 def joinpath(path, *args):
@@ -14,9 +13,13 @@ def joinpath(path, *args):
 
 class CellarTests:
     nonce = b'r' * SecretBox.NONCE_SIZE
-    key = b'k' * 32
+    key = b'k' * SecretBox.KEY_SIZE
     testdir = Path(__file__).parent
-    cellar = Cellar(key)
+    cellar_class = crypt.BaseCellar
+
+    @property
+    def cellar(self):
+        return self.cellar_class(self.key)
 
     def get_path(self, *args):
         # testdir = os.path.abspath(os.path.dirname(__file__))

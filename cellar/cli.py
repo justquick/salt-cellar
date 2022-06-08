@@ -5,10 +5,10 @@ import asyncio
 
 from cellar.crypt import OverwritePathCellar as Cellar
 
-USAGE = f"""
+USAGE = """
 Toolkit for encrypting/decrypting files and directories using symetric (secret key) encryption.
 Requires a secret key to be passed either by file, prompt or read from stdin.
-The key must be {Cellar.key_size} bytes long.
+The key must be 32 bytes long.
 If key is too short, it will be padded by null bytes.
 If key is too long, it will be truncated.
 """
