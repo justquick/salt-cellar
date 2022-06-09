@@ -8,6 +8,7 @@ pynacl = "*"
 click = "*"
 six = "*"
 aiofiles = "*"
+click-log = "*"
 
 [dev-packages]
 pytest = "*"
@@ -17,4 +18,3 @@ green = "*"
 rich = "*"
 pytest-cov = "*"
 pytest-asyncio = "*"
-

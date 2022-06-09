@@ -3,7 +3,11 @@ import sys
 from pathlib import Path
 import asyncio
 
+import click_log
+
 from cellar.crypt import OverwritePathCellar as Cellar, DecryptionError
+from cellar.log import logger
+
 
 USAGE = """
 Toolkit for encrypting/decrypting files and directories using symetric (secret key) encryption.
@@ -14,9 +18,13 @@ If key is too long, it will be truncated.
 """
 
 
+click_log.basic_config(logger)
+
+
 @click.group('cellar')
 @click.version_option()
-@click.option('-v', '--verbosity', default=1, count=True, help='Output level 1, 2 or 3')
+@click_log.simple_verbosity_option(logger)
+# @click.option('-v', '--verbosity', default=1, count=True, help='Output level 1, 2 or 3')
 @click.option('-k', '--key-file', envvar='CELLAR_KEYFILE', type=click.File('rb'),
               help='File path to use for secret key or CELLAR_KEYFILE env var')
 @click.option('-p', '--key-phrase', envvar='CELLAR_KEYPHRASE', default=None,
