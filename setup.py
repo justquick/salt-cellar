@@ -23,6 +23,7 @@ setup(
     author_email=pkg.__author_email__,
     license=pkg.__license__,
     description=pkg.__description__,
+    long_description=read_file('README.md'),
     install_requires=['pynacl', 'click', 'aiofiles'],
     entry_points={
         'console_scripts': ['cellar = cellar.cli:cli']
