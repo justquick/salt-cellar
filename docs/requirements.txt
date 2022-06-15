@@ -1,0 +1,7 @@
+sphinx
+myst-parser
+karma-sphinx-theme
+sphinx-click
+pynacl
+click
+aiofiles
