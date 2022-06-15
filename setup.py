@@ -24,8 +24,22 @@ setup(
     license=pkg.__license__,
     description=pkg.__description__,
     long_description=read_file('README.md'),
+    long_description_content_type='text/markdown',
     install_requires=['pynacl', 'click', 'aiofiles'],
     entry_points={
         'console_scripts': ['cellar = cellar.cli:cli']
     },
+    python_requires='>=3.6',
+    project_urls={
+        'Documentation': 'https://pynacl-cellar.readthedocs.io/',
+        'Source': 'https://github.com/justquick/salt-cellar',
+        'Bug Tracker': 'https://github.com/justquick/salt-cellar/issues',
+    },
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Environment :: Console',
+    ],
 )

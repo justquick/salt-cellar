@@ -1,4 +1,4 @@
-__name__ = 'salt-cellar'
+__name__ = 'pynacl-cellar'
 __title__ = 'Salt Cellar Encryption'
 __version__ = '0.1.0'
 __author__ = 'Justin Quick'
