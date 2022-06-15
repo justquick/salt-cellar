@@ -3,10 +3,9 @@ import sys
 from pathlib import Path
 import asyncio
 
-import click_log
 
 from cellar.crypt import OverwritePathCellar as Cellar, DecryptionError
-from cellar.log import logger
+from cellar.log import setup
 
 
 USAGE = """
@@ -18,13 +17,13 @@ If key is too long, it will be truncated.
 """
 
 
-click_log.basic_config(logger)
 
 
 @click.group('cellar')
 @click.version_option()
-@click_log.simple_verbosity_option(logger)
-# @click.option('-v', '--verbosity', default=1, count=True, help='Output level 1, 2 or 3')
+@click.option('-v', '--verbosity', default=1, count=True, help='Output level WARN/INFO/DEBUG')
+@click.option('-l', '--log-file', envvar='CELLAR_LOGFILE', type=click.File('w'),
+              help='File path to write logs to')
 @click.option('-k', '--key-file', envvar='CELLAR_KEYFILE', type=click.File('rb'),
               help='File path to use for secret key or CELLAR_KEYFILE env var')
 @click.option('-p', '--key-phrase', envvar='CELLAR_KEYPHRASE', default=None,
@@ -32,16 +31,15 @@ click_log.basic_config(logger)
 @click.option('-P', '--key-prompt', is_flag=True,
               help='Prompt for the secret key (default)')
 @click.pass_context
-def cli(ctx, key_prompt, key_phrase, key_file, verbosity):
+def cli(ctx, key_prompt, key_phrase, key_file, log_file, verbosity):
     ctx.ensure_object(object)
-    if key_phrase:
+    setup(verbosity, log_file)
+    if key_prompt:
+        secret = click.prompt('Secret key', hide_input=True, err=True).encode()
+    elif key_phrase:
         secret = sys.stdin.buffer.read() if key_phrase == '-' else key_phrase.encode()
     elif key_file:
         secret = key_file.read()
-    else:
-        if not key_prompt:
-            click.secho('No key file/phrase found, prompting instead', fg='yellow')
-        secret = click.prompt('Secret key', hide_input=True, err=True).encode()
     ctx.obj = Cellar(secret)
 
 
