@@ -4,8 +4,9 @@ from cellar.crypt import OverwritePathCellar
 
 from .base import CellarTests
 
+import pytest
+pytestmark = pytest.mark.asyncio
 
-@patch('cellar.crypt.BaseCellar.nonce', CellarTests.nonce)
 class TestOverwriteCrypt(CellarTests):
     cellar_class = OverwritePathCellar
     cipherfilesha = '8d0271606d0e549662dbf1c36cb049c6d3a30b04'
@@ -23,21 +24,23 @@ class TestOverwriteCrypt(CellarTests):
     }
 
     async def test_encrypt_file(self):
-        plainfile = self.get_path('foo.txt')
-        plainsha = self.sha(plainfile)
-        await self.cellar.encrypt_file(plainfile)
-        cipherfile = self.get_path('foo.txt')
-        assert cipherfile.is_file()
-        assert self.sha(cipherfile) == self.cipherfilesha
-        await self.cellar.decrypt_file(cipherfile)
-        assert plainsha == self.sha(plainfile)
+        with self.patch:
+            plainfile = self.get_path('foo.txt')
+            plainsha = self.sha(plainfile)
+            await self.cellar.encrypt_file(plainfile)
+            cipherfile = self.get_path('foo.txt')
+            assert cipherfile.is_file()
+            assert self.sha(cipherfile) == self.cipherfilesha
+            await self.cellar.decrypt_file(cipherfile)
+            assert plainsha == self.sha(plainfile)
 
     async def test_encrypt_dir(self):
-        plaindir = self.get_path('level1')
-        await self.cellar.encrypt_dir(plaindir)
-        cipherdir = self.get_path('level1')
-        assert cipherdir.is_dir()
-        cfiles = self.file_shas(cipherdir)
-        assert cfiles == self.cipherfiles
-        await self.cellar.decrypt_dir(cipherdir)
-        assert self.plainfiles == self.file_shas(plaindir)
+        with self.patch:
+            plaindir = self.get_path('level1')
+            await self.cellar.encrypt_dir(plaindir)
+            cipherdir = self.get_path('level1')
+            assert cipherdir.is_dir()
+            cfiles = self.file_shas(cipherdir)
+            assert cfiles == self.cipherfiles
+            await self.cellar.decrypt_dir(cipherdir)
+            assert self.plainfiles == self.file_shas(plaindir)

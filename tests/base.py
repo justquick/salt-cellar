@@ -1,5 +1,6 @@
 from pathlib import Path
 from hashlib import sha1
+from unittest.mock import patch
 
 from nacl.secret import SecretBox
 
@@ -35,3 +36,7 @@ class CellarTests:
                 path = path.encode()
             return sha1(open(path, 'rb').read()).hexdigest()
         return {str(path.relative_to(self.testdir)): self.sha(path) for path in paths}
+
+    @property
+    def patch(self):
+        return patch('cellar.crypt.BaseCellar.nonce', CellarTests.nonce)
