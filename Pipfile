@@ -8,6 +8,7 @@ pynacl = "*"
 click = "*"
 aiofiles = "*"
 
+
 [dev-packages]
 pytest = "*"
 ipython = "*"
@@ -16,3 +17,6 @@ rich = "*"
 pytest-cov = "*"
 pytest-asyncio = "*"
 autopep8 = "*"
+sphinx = "*"
+myst-parser = "*"
+sphinx-click = "*"

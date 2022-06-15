@@ -1,6 +1,6 @@
 # Salt Cellar Encryption Tool
 
-Salt Cellar is a Python program that protects your files and folders using hard encryption. `cellar` is a command line tool to encrypt and decrypt your files/folders using a secret key and protect them from prying eyes. Files are quickly encrypted/decrypted fully asynchronously using asyncio/aiofiles. 
+Salt Cellar is a Python program that protects your files and folders using hard encryption. The `pynacl-cellar` package provides the command line tool `cellar` to encrypt and decrypt your files/folders using a secret key and protect them from prying eyes. Files are quickly encrypted/decrypted fully asynchronously using asyncio/aiofiles. 
 
 ## Encryption
 
@@ -19,7 +19,7 @@ A secret key for use with the tool should be 32 bytes long. It can be stored as 
 - Install [libsodium](https://doc.libsodium.org/)
 - Recommend using [pipx](https://pypa.github.io/pipx/) for installing the CLI tool
 
-    `pipx install salt-cellar`
+    `pipx install pynacl-cellar`
 
 - Then run the command with pipx
 
@@ -51,7 +51,7 @@ Commands:
 ### CELLAR_KEYFILE
  A file that contains the content of your private key (32 bytes)
 
-### CELLAR_KEYPHRASE`
+### CELLAR_KEYPHRASE
  A string that contains the content of your private key (32 bytes)
 
 ### CELLAR_LOGFILE
