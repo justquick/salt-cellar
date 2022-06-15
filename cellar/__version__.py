@@ -1,0 +1,8 @@
+__name__ = 'salt-cellar'
+__title__ = 'Salt Cellar Encryption'
+__version__ = '0.1.0'
+__author__ = 'Justin Quick'
+__author_email__ = 'justquick@gmail.com'
+__url__ = 'https://github.com/justquick/salt-cellar'
+__license__ = 'BSD'
+__description__ = 'Uses libsodium for symetric, secret key encryption of files and folders'

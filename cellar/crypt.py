@@ -56,9 +56,9 @@ class BaseCellar:
         return self.box.encrypt(plaintext, self.nonce, encoder())
 
     async def decrypt(self, ciphertext, decode=True):
-        f"""
+        """
         Encrypts ciphertext to  plaintext.
-        By default it decodes using the {self.encoder_class.__name__}
+        By default it decodes using the URLSafeBase64Encoder
         Catches any errors (like bad dec key) and logs them before exiting
         """
         encoder = self.encoder_class if decode else RawEncoder
@@ -88,11 +88,8 @@ class BaseCellar:
             chunk = instream.read(self.block_size + 40)
 
     async def read_write_crypto(self, infile, outfile, encrypt=True):
-        method = self.encrypt
-        block_size = self.block_size
-        if not encrypt:
-            method = self.decrypt
-            block_size += 40
+        method = self.encrypt if encrypt else self.decrypt
+        block_size = self.block_size if encrypt else self.block_size + 40
         async with self.semaphore:
             async with aiofiles.open(infile, 'rb') as fi, aiofiles.open(outfile, 'wb') as fo:
                 chunk = await fi.read(block_size)

@@ -6,14 +6,12 @@ name = "pypi"
 [packages]
 pynacl = "*"
 click = "*"
-six = "*"
 aiofiles = "*"
 
 [dev-packages]
 pytest = "*"
 ipython = "*"
 ipdb = "*"
-green = "*"
 rich = "*"
 pytest-cov = "*"
 pytest-asyncio = "*"

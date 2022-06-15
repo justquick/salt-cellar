@@ -1,6 +1,9 @@
 import os
 from setuptools import setup
 
+from cellar import __version__ as pkg
+
+
 
 def read_file(filename):
     """Read a file into a string"""
@@ -13,9 +16,14 @@ def read_file(filename):
 
 
 setup(
-    name='Salt Cellar',
+    name=pkg.__name__,
+    version=pkg.__version__,
     packages=['cellar'],
-    install_requires=read_file('requirements.txt'),
+    author=pkg.__author__,
+    author_email=pkg.__author_email__,
+    license=pkg.__license__,
+    description=pkg.__description__,
+    install_requires=['pynacl', 'click', 'aiofiles'],
     entry_points={
         'console_scripts': ['cellar = cellar.cli:cli']
     },

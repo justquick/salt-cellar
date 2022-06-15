@@ -1,4 +1,4 @@
-name: Test and deploy
+name: PyTest
 
 # define when to run the action
 on:
@@ -20,6 +20,7 @@ jobs:
           - 3.7
           - 3.8
           - 3.9
+          - 3.10
 
     steps:
       # check out revision to test
@@ -45,7 +46,7 @@ jobs:
       # install environment specific dependencies
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: pipenv install pynacl six click aiofiles pytest pytest-cov pytest-asyncio --python python${{ matrix.python-version }}
+        run: pipenv install pynacl click aiofiles pytest pytest-asyncio --python python${{ matrix.python-version }}
 
       # install our package
       - name: Install package
@@ -53,4 +54,5 @@ jobs:
 
       # execute the tests
       - name: Run tests
-        run: pipenv run pytest -s --cov=cellar
+        run: pipenv run pytest -sx
+
