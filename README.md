@@ -59,8 +59,9 @@ A filename to use for logging
 
 ## Example
 
+### Encrypt a given directory
+
 ```bash
-# Encrypt a given directory
 $ cellar -vv encrypt test-dir/
 Secret key: 
 WARNING cellar __init__: Key too short, padding to to 32 characters
@@ -68,11 +69,18 @@ INFO cellar encrypt_file: Encrypted file test-dir/mypic.jpg
 INFO cellar encrypt_dir: Encrypted directory test-dir
 ```
 
+### Encrypt stdin
+
 ```bash
-# Encrypt stdin
 $ echo foobarbaz | cellar encrypt -
 9T�䳵�B���S��*�����S��
 # Decrypt it using pipes
 $ echo foobarbaz | cellar encrypt - | cellar decrypt -
 foobarbaz
+```
+
+### Encrypt files w/ pipe redirection
+
+```bash
+$ cellar encrypt - < plain.txt > encrypted.txt
 ```
