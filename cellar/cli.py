@@ -6,6 +6,7 @@ import asyncio
 
 from cellar.crypt import OverwritePathCellar as Cellar, DecryptionError
 from cellar.log import setup
+from cellar import __version__ as pkg
 
 
 USAGE = """
@@ -17,10 +18,8 @@ If key is too long, it will be truncated.
 """
 
 
-
-
 @click.group('cellar')
-@click.version_option()
+@click.version_option(pkg.__version__, package_name=pkg.__name__)
 @click.option('-v', '--verbosity', default=1, count=True, help='Output level WARN/INFO/DEBUG')
 @click.option('-l', '--log-file', envvar='CELLAR_LOGFILE', type=click.File('w'),
               help='File path to write logs to')
@@ -45,40 +44,18 @@ def cli(ctx, key_prompt, key_phrase, key_file, log_file, verbosity):
 
 @cli.command()
 @click.argument('paths', nargs=-1, type=click.Path(exists=True, allow_dash=True, path_type=Path), required=True)
-@click.option('-p', '--preserve', is_flag=True,
-              help='Keep plain text source content. By default it is deleted once encryption completes successfully.')
 @click.pass_context
-def encrypt(ctx, preserve, paths):
+def encrypt(ctx, paths):
     "Encrypts given paths. Can be either files or directories"
-    for path in paths:
-        if str(path) == '-':
-            main = ctx.obj.encrypt_stream(sys.stdin.buffer)
-        elif path.is_file():
-            main = ctx.obj.encrypt_file(path)
-        elif path.is_dir():
-            main = ctx.obj.encrypt_dir(path)
-        asyncio.get_event_loop().run_until_complete(main)
+    ctx.obj(paths)
 
 
 @cli.command()
 @click.argument('paths', nargs=-1, type=click.Path(exists=True, allow_dash=True, path_type=Path), required=True)
-@click.option('-p', '--preserve', is_flag=True,
-              help='Keep encrypted source content. By default it is deleted once decryption completes successfully.')
 @click.pass_context
-def decrypt(ctx, preserve, paths):
+def decrypt(ctx, paths):
     "Decrypts given paths. Can be either files or directories"
-    for path in paths:
-        if str(path) == '-':
-            main = ctx.obj.decrypt_stream(sys.stdin.buffer)
-        elif path.is_file():
-            main = ctx.obj.decrypt_file(path)
-        elif path.is_dir():
-            main = ctx.obj.decrypt_dir(path)
-        try:
-            asyncio.get_event_loop().run_until_complete(main)
-        except DecryptionError as exc:
-            click.secho(exc, fg='red')
-            raise click.Abort
+    ctx.obj(paths, False)
 
 
 if __name__ == '__main__':

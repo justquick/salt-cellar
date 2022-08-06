@@ -3,11 +3,12 @@ import sys
 from shutil import rmtree
 import asyncio
 
+import click
+import aiofiles
 from nacl.secret import SecretBox
 from nacl.utils import random
 from nacl.exceptions import CryptoError
 from nacl.encoding import URLSafeBase64Encoder, RawEncoder
-import aiofiles
 
 from .log import logger
 
@@ -19,7 +20,7 @@ class DecryptionError(Exception):
 class BaseCellar:
     """
     Main encryption class to enc/decrypt streams, files and directories.
-    Manages the nacl SecretBox/nonce/keys
+    Manages the PyNaCl SecretBox/nonce/keys
     """
 
     def __init__(self, key, encoder_class=URLSafeBase64Encoder, block_size=2 ** 20, concurrency=100):
@@ -32,11 +33,28 @@ class BaseCellar:
             key = key.encode()
         if len(key) < self.key_size:
             key = key.ljust(self.key_size, b'\x00')
-            logger.warning(f'Key too short, padding to to {self.key_size} characters')
+            logger.warning(f'Key too short, padding to {self.key_size} bytes')
         elif len(key) > self.key_size:
             key = key[:self.key_size]
-            logger.warning(f'Key too long, truncating to {self.key_size} characters')
+            logger.warning(f'Key too long, truncating to {self.key_size} bytes')
         self.box = SecretBox(key)
+        
+    def __call__(self, paths, encrypt=True):
+        for path in set(paths):
+            if str(path) == '-':
+                method = self.encrypt_stream if encrypt else self.decrypt_stream
+                main = method(sys.stdin.buffer)
+            elif path.is_file():
+                method = self.encrypt_file if encrypt else self.decrypt_file
+                main = method(path)
+            elif path.is_dir():
+                method = self.encrypt_dir if encrypt else self.decrypt_dir
+                main = method(path)
+            try:
+                asyncio.get_event_loop().run_until_complete(main)
+            except DecryptionError as exc:
+                click.secho(exc, fg='red')
+                raise click.Abort
 
     @property
     def nonce(self):
@@ -46,9 +64,9 @@ class BaseCellar:
         return random(self.box.NONCE_SIZE)
 
     async def encrypt(self, plaintext, encode=True):
-        f"""
+        """
         Encrypts plaintext to ciphertext.
-        By default it encodes using the {self.encoder_class.__name__}
+        By default it encodes using the URLSafeBase64Encoder
         """
         encoder = self.encoder_class if encode else RawEncoder
         if isinstance(plaintext, str):
